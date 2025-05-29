@@ -3,7 +3,8 @@ import { usePeerStore } from '../hooks/usePeerStore';
 import {AnimatePresence, easeInOut, motion} from 'framer-motion'
 import UploadedFile from "./UploadedFile";
 import { AlertCircle, User } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useFileStore } from '../hooks/useFileStore';
+import { InputHTMLAttributes, useEffect, useRef, useState } from "react";
 const Room = () => {
     const {roomId, socket} = useSocketStore();
     const { PeerManager, setNewPeerManager } = usePeerStore();
@@ -13,6 +14,8 @@ const Room = () => {
     const [alert, setAlert] = useState<string>('');
     const [justJoined, setJustJoined] = useState(false);
     const alertTimeoutRef = useRef<number | null>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null)
+    const {files, addFile, clearFiles} = useFileStore();
     
     useEffect(() => {
         if(PeerManager === null  && username && socket && roomId){
@@ -93,10 +96,28 @@ const Room = () => {
         };
         }, [PeerManager])
 
+    useEffect(() => {
+        if(inputRef.current){
+            inputRef.current.onchange = () => {
+                const files = inputRef.current?.files;
+                const emptyArr = new Array()
+                if(files){
+                    for(let i = 0; i < files.length; i++){
+                        emptyArr[i] = files[i];
+                    }
+                }
+                console.log('new selected files');
+                console.log(emptyArr);
+                emptyArr.map((file) => {
+                    addFile(file);
+                })
+            }
+        }
+    }, []);
     const handleUserClicked = () => {
         setUserModal((prev) => !prev)
     }
-
+    
     return(
         <div className="flex flex-col bg-black  h-screen w-screen">
              <motion.div 
@@ -147,18 +168,42 @@ const Room = () => {
             transition={{duration:0.75}}
             >
                 <p className="text-white font-mono text-2xl ">{roomId}</p>
-                <button onClick={handleUserClicked} style={{cursor:'pointer'}}>
-                    <User size={32}  color={"#ffffff"} />
-                </button>
+                <div className="flex flex-row space-x-8 md:pr-8">
+                    <button onClick={clearFiles} style={{cursor:'pointer'}}>
+                        <p className="p-3 hover:scale-105  rounded-xl bg-black transition-all text-white">Clear</p>
+                    </button>
+                    <button onClick={handleUserClicked} style={{cursor:'pointer'}}>
+                        <User size={32}  color={"#ffffff"} />
+                    </button>
+                </div>
             </motion.div>
             <div className="flex-col flex-1 overflow-y-auto flex w-screen z-20 items-center mb-40 space-y-2 ">
-                <UploadedFile  name="file1.txt" type="pdf"/>
-                <UploadedFile  name="file2.mp4" type="video"/>
+                {
+                    files &&
+                    files.map((file, index) => {
+                        console.log('file type: '+file.type)
+                        return(
+                            <UploadedFile key={index} name={file.name} type={file.type} />
+                        )
+                    })
+                    
+                }
+                {
+                    files.length === 0 &&
+                    <motion.p className="text-white font-bold text-3xl mx-auto my-auto transition-all"
+                    initial={{opacity:0}}
+                    animate={{opacity:100}}
+                    transition={{duration:0.75}}
+                    >
+                    No files to show
+                    </motion.p>
+                }
             </div>
             <div className="w-full  flex-row  absolute z-50 justify-center flex bottom-0 top-auto">
-                <button className="rounded-xl w-1/2 backdrop-blur-lg bg-black/35 hover:bg-black/55 mb-20  p-4" style={{cursor:'pointer'}}>
-                    <p className="text-white text-xl font-bold">Add File</p>
-                </button>
+                <label htmlFor="inputFile"  className="rounded-xl w-1/2 backdrop-blur-lg bg-black/35 hover:bg-black/55 mb-20  p-4" style={{cursor:'pointer'}}>
+                    <p className="text-white text-center text-xl font-bold">Add File</p>
+                </label>
+                <input id="inputFile" ref={inputRef} multiple type="file" className="hidden"/>
             </div>
         </div>
     )
