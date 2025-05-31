@@ -143,15 +143,15 @@ const Room = () => {
             <AnimatePresence>
             {
                 userModal &&
-                <motion.div className="flex flex-col absolute h-screen w-1/3 p-5 bg-black/30 space-y-5 py-10  backdrop-blur-xl "
+                <motion.div className="flex flex-col shadow-xl shadow-black absolute w-3/4 h-screen md:w-1/3 p-5 bg-black/30 space-y-5 py-10  backdrop-blur-md "
                 initial={{x:-650}}
                 animate={{x:0}}
                 exit={{x:-650}}
                 transition={{duration:0.6}}
                 style={{zIndex:999999}}
                 >
-                    <p className="text-white text-xl font-light font-mono">Your username: {username}</p> 
-                    <p className="text-white text-xl font-light font-mono">Users Connected: </p>
+                    <p className="text-white text-sm md:text-xl font-light font-mono">Your username: {username}</p> 
+                    <p className="text-white text-sm md:text-xl font-light font-mono">Users Connected: </p>
                     {
                         users.map((user:any, index:number) => (
                             <div key={index}>
@@ -162,46 +162,49 @@ const Room = () => {
                 </motion.div>
             }
             </AnimatePresence>
-            <motion.div className="h-24  bg-black/55 mb-2 flex flex-row justify-between px-5 items-center w-screen relative z-50 top-0"
+            <motion.div className="h-20  md:h-24  bg-black/65 shadow-md shadow-black mb-2 flex flex-row justify-between px-5 items-center w-screen relative z-50 top-0"
             initial={{y:-200}}
             animate={{y:0}}
             transition={{duration:0.75}}
             >
-                <p className="text-white font-mono text-2xl ">{roomId}</p>
+                <p className="text-white font-mono text-xl md:text-2xl ">{roomId}</p>
                 <div className="flex flex-row space-x-8 md:pr-8">
-                    <button onClick={clearFiles} style={{cursor:'pointer'}}>
-                        <p className="p-3 hover:scale-105  rounded-xl bg-black transition-all text-white">Clear</p>
-                    </button>
+                    {
+                        files.length > 0 &&
+                        <button onClick={clearFiles} style={{cursor:'pointer'}} className="rounded-xl shadow-md shadow-black bg-gradient-to-l  from-blue-500/15 to-rose-500/15 backdrop-blur-3xl hover:scale-110 transition-all">
+                            <p className="p-4 text-white">Clear</p>
+                        </button>
+                    }
                     <button onClick={handleUserClicked} style={{cursor:'pointer'}}>
                         <User size={32}  color={"#ffffff"} />
                     </button>
                 </div>
             </motion.div>
-            <div className="flex-col flex-1 overflow-y-auto flex w-screen z-20 items-center mb-40 space-y-2 ">
+            <div className="flex-col flex-1 overflow-y-auto flex w-screen z-20 items-center mb-24 md:mb-36 space-y-2 ">
                 {
                     files &&
                     files.map((file, index) => {
                         console.log('file type: '+file.type)
                         return(
-                            <UploadedFile key={index} name={file.name} type={file.type} />
+                            <UploadedFile key={index} file={file} name={file.name} type={file.type} />
                         )
                     })
                     
                 }
                 {
                     files.length === 0 &&
-                    <motion.p className="text-white font-bold text-3xl mx-auto my-auto transition-all"
+                    <motion.p className="text-white font-bold text-xl md:text-3xl mx-auto my-auto "
                     initial={{opacity:0}}
-                    animate={{opacity:100}}
-                    transition={{duration:0.75}}
+                    animate={{opacity:1}}
+                    transition={{duration:0.15}}
                     >
                     No files to show
                     </motion.p>
                 }
             </div>
-            <div className="w-full  flex-row  absolute z-50 justify-center flex bottom-0 top-auto">
-                <label htmlFor="inputFile"  className="rounded-xl w-1/2 backdrop-blur-lg bg-black/35 hover:bg-black/55 mb-20  p-4" style={{cursor:'pointer'}}>
-                    <p className="text-white text-center text-xl font-bold">Add File</p>
+            <div className="w-full  flex-row  absolute z-50 justify-center  flex bottom-0 ">
+                <label htmlFor="inputFile"  className="rounded-xl  w-1/2 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
+                    <p className="text-white text-center text-sm md:text-xl font-bold">Add File</p>
                 </label>
                 <input id="inputFile" ref={inputRef} multiple type="file" className="hidden"/>
             </div>
