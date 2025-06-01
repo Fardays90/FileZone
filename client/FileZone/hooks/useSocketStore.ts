@@ -9,7 +9,7 @@ const useSocketStore = create<storeProps>((set) => ({
     socket: null,
     roomId: null,
     connect: (roomId) => {
-        const newSocket = new WebSocket('wss://filezone-lg50.onrender.com')
+        const newSocket = new WebSocket('wss://filezone-lg50.onrender.com/ws')
         set({socket: newSocket, roomId: roomId})
         const object = {
                 type: "join",
