@@ -1,5 +1,5 @@
 import 'lucide-react'
-import { DeleteIcon, TrashIcon } from 'lucide-react';
+import { TrashIcon } from 'lucide-react';
 import { useFileStore } from '../hooks/useFileStore';
 import { useEffect, useState } from 'react';
 
