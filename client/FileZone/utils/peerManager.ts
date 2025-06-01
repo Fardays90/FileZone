@@ -84,6 +84,7 @@ export class WebRTCPeerManager{
             }
         }
         pc.ondatachannel = (event) => {
+            console.log(`data channel of ${this.userId} and ${peerId} has been set up`)
             this.setupDataChannel(peerId, event.channel);
         }
         pc.onconnectionstatechange = () => {

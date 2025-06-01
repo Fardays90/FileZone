@@ -4,7 +4,14 @@ import {AnimatePresence, easeInOut, motion} from 'framer-motion'
 import UploadedFile from "./UploadedFile";
 import { AlertCircle, User } from "lucide-react";
 import { useFileStore } from '../hooks/useFileStore';
-import { InputHTMLAttributes, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import clsx from "clsx";
+import ReceivedFile from "./ReceivedFIle";
+type receivedFile = {
+    file: Blob,
+    fileName: string,
+    from: string
+}
 const Room = () => {
     const {roomId, socket} = useSocketStore();
     const { PeerManager, setNewPeerManager } = usePeerStore();
@@ -15,11 +22,16 @@ const Room = () => {
     const [justJoined, setJustJoined] = useState(false);
     const alertTimeoutRef = useRef<number | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null)
+    const [receivedModal, setReceivedModal] = useState(false);
+    const [receivedFiles, setReceivedFiles] = useState<receivedFile[]>([]);
     const {files, addFile, clearFiles} = useFileStore();
     
     useEffect(() => {
         if(PeerManager === null  && username && socket && roomId){
-            setNewPeerManager(socket, username, roomId, () => {});
+            setNewPeerManager(socket, username, roomId, (file: Blob, fileName: string, from: string) => {
+                const receivedObj = {file: file, fileName: fileName, from: from}
+                setReceivedFiles((state) => [...state, receivedObj]);
+            });
         }
     },[roomId, username, socket]);
     useEffect(() => {
@@ -31,7 +43,6 @@ const Room = () => {
             })
         }
     },[PeerManager, roomId,username, users, justJoined])
-
     useEffect(() => {
         if(!socket)return;
         socket.onmessage = (event) => {
@@ -95,6 +106,16 @@ const Room = () => {
             }
         };
         }, [PeerManager])
+
+    const sendFiles = () => {
+        console.log('send clicked')
+        if(files.length > 0){
+            console.log('trying to send')
+            files.map((file) => {
+                PeerManager?.broadcastFile(file);
+            })
+        }
+    }
 
     useEffect(() => {
         if(inputRef.current){
@@ -162,6 +183,31 @@ const Room = () => {
                 </motion.div>
             }
             </AnimatePresence>
+            <AnimatePresence>
+                {
+                    receivedModal &&
+                    <motion.div
+                    className="flex flex-col absolute w-full h-screen md:w-full p-5 bg-black/30 space-y-5 py-10  backdrop-blur-md"
+                    initial={{y:-window.innerHeight}}
+                    animate={{y:0}}
+                    exit={{y:-window.innerHeight}}
+                    transition={{duration:0.6}}
+                    style={{zIndex:999999}}
+                    >
+                        <button onClick={() => setReceivedModal(false)} className="bg-white w-max p-4 rounded-xl">
+                            <p className="tex-black">Close button</p>
+                        </button>
+                        {
+                            (receivedFiles.length > 0) ?
+                            receivedFiles.map((file, index) => (
+                                <ReceivedFile key={index} name={file.fileName} type={file.file.type} file={file.file}/>
+                            ))
+                            :
+                            <p>No files gotten yet</p>
+                        }
+                    </motion.div>
+                }
+            </AnimatePresence>
             <motion.div className="h-20  md:h-24  bg-black/65 shadow-md shadow-black mb-2 flex flex-row justify-between px-5 items-center w-screen relative z-50 top-0"
             initial={{y:-200}}
             animate={{y:0}}
@@ -169,6 +215,12 @@ const Room = () => {
             >
                 <p className="text-white font-mono text-xl md:text-2xl ">{roomId}</p>
                 <div className="flex flex-row space-x-8 md:pr-8">
+                    {
+                        receivedFiles.length > 0 && 
+                        <button onClick={() => setReceivedModal((state) => !state)} style={{cursor:'pointer'}} className="rounded-xl shadow-md shadow-black bg-gradient-to-l  from-blue-500/15 to-rose-500/15 backdrop-blur-3xl hover:scale-110 transition-all">
+                            <p className="p-4 text-white">Received files</p>
+                        </button>
+                    }
                     {
                         files.length > 0 &&
                         <button onClick={clearFiles} style={{cursor:'pointer'}} className="rounded-xl shadow-md shadow-black bg-gradient-to-l  from-blue-500/15 to-rose-500/15 backdrop-blur-3xl hover:scale-110 transition-all">
@@ -202,10 +254,24 @@ const Room = () => {
                     </motion.p>
                 }
             </div>
-            <div className="w-full  flex-row  absolute z-50 justify-center  flex bottom-0 ">
-                <label htmlFor="inputFile"  className="rounded-xl  w-1/2 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
-                    <p className="text-white text-center text-sm md:text-xl font-bold">Add File</p>
-                </label>
+            <div className={clsx(files.length > 0 ? "w-full  flex-row  absolute z-50 justify-between px-2   flex bottom-0 space-x-2" : 
+                "w-full flex-row  absolute z-50 justify-center flex bottom-0"
+             ) }>
+                {
+                    files.length > 0 ?
+                    <>
+                        <label htmlFor="inputFile"  className="rounded-xl  w-3/4 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
+                            <p className="text-white text-center text-sm md:text-xl font-bold">Add File</p>
+                        </label>
+                        <label onClick={sendFiles} className="rounded-xl  w-1/4 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
+                            <p className="text-white text-center text-sm md:text-xl font-bold">Send</p>
+                        </label>
+                    </>
+                    :
+                    <label htmlFor="inputFile"  className="rounded-xl  w-1/2 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
+                        <p className="text-white text-center text-sm md:text-xl font-bold">Add File</p>
+                    </label>
+                }
                 <input id="inputFile" ref={inputRef} multiple type="file" className="hidden"/>
             </div>
         </div>
