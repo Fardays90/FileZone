@@ -2,7 +2,7 @@ import { useSocketStore } from "../hooks/useSocketStore"
 import { usePeerStore } from '../hooks/usePeerStore';
 import {AnimatePresence, easeInOut, motion} from 'framer-motion'
 import UploadedFile from "./UploadedFile";
-import { AlertCircle, User } from "lucide-react";
+import { AlertCircle, Cross, User } from "lucide-react";
 import { useFileStore } from '../hooks/useFileStore';
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
@@ -176,7 +176,7 @@ const Room = () => {
                     {
                         users.map((user:any, index:number) => (
                             <div key={index}>
-                                <p className="text-white text-xl font-light font-mono">{index+1}. {user}</p>
+                                <p className="text-white text-sm md:text-xl font-light font-mono">{index+1}. {user}</p>
                             </div>
                         ))
                     }
@@ -195,7 +195,7 @@ const Room = () => {
                     style={{zIndex:999999}}
                     >
                         <button onClick={() => setReceivedModal(false)} className="bg-white w-max p-4 rounded-xl">
-                            <p className="tex-black">Close button</p>
+                            <Cross color="white"/>
                         </button>
                         {
                             (receivedFiles.length > 0) ?
@@ -263,9 +263,9 @@ const Room = () => {
                         <label htmlFor="inputFile"  className="rounded-xl  w-3/4 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
                             <p className="text-white text-center text-sm md:text-xl font-bold">Add File</p>
                         </label>
-                        <label onClick={sendFiles} className="rounded-xl  w-1/4 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
+                        <button onClick={sendFiles} className="rounded-xl  w-1/4 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
                             <p className="text-white text-center text-sm md:text-xl font-bold">Send</p>
-                        </label>
+                        </button>
                     </>
                     :
                     <label htmlFor="inputFile"  className="rounded-xl  w-1/2 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
