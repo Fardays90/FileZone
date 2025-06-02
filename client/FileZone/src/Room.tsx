@@ -2,7 +2,7 @@ import { useSocketStore } from "../hooks/useSocketStore"
 import { usePeerStore } from '../hooks/usePeerStore';
 import {AnimatePresence, easeInOut, motion} from 'framer-motion'
 import UploadedFile from "./UploadedFile";
-import { AlertCircle, Cross, CrossIcon, User, XIcon } from "lucide-react";
+import { AlertCircle,User, XIcon } from "lucide-react";
 import { useFileStore } from '../hooks/useFileStore';
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
