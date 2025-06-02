@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {useSocketStore} from '../hooks/useSocketStore';
 import { useNavigate } from "react-router-dom";
 const Home = () => {
@@ -8,7 +8,20 @@ const Home = () => {
     const { connect } = useSocketStore();
     const handleRoomId = (text: string) => {
         setCurrentRoomId(text);
-    } 
+    }
+    useEffect(() => {
+        async function pingServer(){
+            const response = await fetch("https://filezone-lg50.onrender.com/wake");
+            console.log('pinging');
+            if(response.status !== 200){
+                pingServer();
+            }
+            else{
+                return;
+            }
+        }
+        pingServer();
+    },[]);
     const handleJoin = () => {
         if(currentRoomId){
             connect(currentRoomId);

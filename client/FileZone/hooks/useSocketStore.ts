@@ -10,6 +10,7 @@ const useSocketStore = create<storeProps>((set) => ({
     roomId: null,
     connect: (roomId) => {
         const newSocket = new WebSocket('wss://filezone-lg50.onrender.com/ws')
+        // const newSocket = new WebSocket("ws://localhost:8080/ws");
         set({socket: newSocket, roomId: roomId})
         const object = {
                 type: "join",
