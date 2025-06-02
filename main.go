@@ -58,6 +58,35 @@ func generateRandomId() string {
 	}
 	return string(randomId)
 }
+func wakeServer(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w, r)
+	var testMap = make(map[string]any)
+	testMap["type"] = "test"
+	testMap["message"] = "something"
+	json, err := json.Marshal(testMap)
+	if err != nil {
+		fmt.Println("err trying to make json")
+		return
+	}
+	w.Write(json)
+	w.WriteHeader(http.StatusOK)
+	fmt.Println("Received wake up req")
+}
+
+var allowedOrigins = map[string]bool{
+	"http://localhost:5173":       true,
+	"https://filezone.pages.dev/": true,
+}
+
+func enableCors(w *http.ResponseWriter, r *http.Request) {
+	origin := r.Header.Get("Origin")
+	found := allowedOrigins[origin]
+	if !found {
+		return
+	}
+	(*w).Header().Set("Access-Control-Allow-Origin", origin)
+
+}
 
 func handleConnection(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -173,6 +202,7 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/ws", handleConnection)
+	http.HandleFunc("/wake", wakeServer)
 	port := ":8080"
 	fmt.Println("Server started at port" + port)
 	err := http.ListenAndServe(port, nil)

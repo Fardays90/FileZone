@@ -12,6 +12,7 @@ const Home = () => {
     useEffect(() => {
         async function pingServer(){
             const response = await fetch("https://filezone-lg50.onrender.com/wake");
+            // const response = await fetch("http://localhost:8080/wake");
             console.log('pinging');
             if(response.status !== 200){
                 pingServer();
