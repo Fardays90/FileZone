@@ -2,7 +2,7 @@ import { useSocketStore } from "../hooks/useSocketStore"
 import { usePeerStore } from '../hooks/usePeerStore';
 import {AnimatePresence, easeInOut, motion} from 'framer-motion'
 import UploadedFile from "./UploadedFile";
-import { AlertCircle, Cross, User } from "lucide-react";
+import { AlertCircle, Cross, CrossIcon, User, XIcon } from "lucide-react";
 import { useFileStore } from '../hooks/useFileStore';
 import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
@@ -187,24 +187,26 @@ const Room = () => {
                 {
                     receivedModal &&
                     <motion.div
-                    className="flex flex-col absolute w-full h-screen md:w-full p-5 bg-black/30 space-y-5 py-10  backdrop-blur-md"
+                    className="flex flex-col absolute w-full items-center  h-screen md:w-full p-5 bg-black/30 space-y-5 py-10  backdrop-blur-md"
                     initial={{y:-window.innerHeight}}
                     animate={{y:0}}
                     exit={{y:-window.innerHeight}}
                     transition={{duration:0.6}}
                     style={{zIndex:999999}}
                     >
-                        <button onClick={() => setReceivedModal(false)} className="bg-white w-max p-4 rounded-xl">
-                            <Cross color="white"/>
+                        <button onClick={() => setReceivedModal(false)} className="self-start cursor-pointer" >
+                            <XIcon color="white" size={32}/>
                         </button>
-                        {
-                            (receivedFiles.length > 0) ?
-                            receivedFiles.map((file, index) => (
-                                <ReceivedFile key={index} name={file.fileName} type={file.file.type} file={file.file}/>
-                            ))
-                            :
-                            <p>No files gotten yet</p>
-                        }
+                        <div className="flex-1 flex overflow-y-auto flex-col w-full items-center self-center p-3 space-y-5">
+                            {
+                                (receivedFiles.length > 0) ?
+                                receivedFiles.map((file, index) => (
+                                    <ReceivedFile key={index} name={file.fileName} type={file.file.type} file={file.file}/>
+                                ))
+                                :
+                                <p>No files gotten yet</p>
+                            }
+                        </div>
                     </motion.div>
                 }
             </AnimatePresence>

@@ -32,26 +32,26 @@ const Home = () => {
     return (
         <div className="bg-black h-screen w-screen flex flex-col justify-center items-center">
             <motion.div 
-            className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20 blur-3xl"
+            className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 blur-3xl"
             initial={{opacity:0}}
-            animate={{opacity:0.7}}
+            animate={{opacity:0.6}}
             transition={{duration:1.5}}
             />
-            <div className="flex flex-col items-center gap-6 bg-black/45 backdrop-blur-lg p-8 rounded-2xl shadow-pink-700 shadow-md z-10">
-                <h1 className="text-5xl font-extrabold text-white tracking-tight mb-4">
+            <div className="flex flex-col items-center w-max space-y-4 bg-black/45 backdrop-blur-lg p-8 rounded-2xl shadow-pink-700 shadow-md z-10">
+                <h1 className="text-3xl  md:text-5xl font-extrabold text-white tracking-tight mb-8 md:mb-4">
                 FileZone
                 </h1>
                 <input
-                className="w-80 px-4 py-2 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-900/15 text-white placeholder-gray-400 transition"
+                className="w-56 text-base md:text-lg md:w-80 px-4 py-2 rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-800 bg-gray-900/15 text-white placeholder-gray-400 transition"
                 placeholder="Enter a Room ID"
                 value={currentRoomId}
                 onChange={(e) => handleRoomId(e.target.value)}
                 />
                 <button
-                className="w-80 px-4 py-2 rounded-lg bg-gradient-to-r  from-blue-500 to-purple-500 text-white font-semibold hover:opacity-90 transition"
+                className="w-56 md:w-80 px-4 py-2 rounded-lg bg-gradient-to-r  from-blue-500/75 to-purple-500/75 text-white font-semibold hover:opacity-90 transition"
                 onClick={handleJoin}
                 >
-                Join Room
+                <p className="md:text-lg text-base">Join Room</p>
                 </button>
             </div>
         </div>

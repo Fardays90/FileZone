@@ -38,7 +38,7 @@ const ReceivedFile = ({ name, type, file } : {name:string, type:string, file: Bl
                  previewURL &&
                 <div className=' flex flex-row items-center space-x-4'>
                     <img src={previewURL} className='h-16 md:h-20 rounded-lg'/>
-                    <a href={previewURL} download={name} style={{cursor:'pointer'}} className='bg-lime-500 rounded-xl p-2'>
+                    <a href={previewURL} download={name} style={{cursor:'pointer'}} className='bg-lime-600 rounded-xl p-2'>
                         <Download color='white'/>
                     </a>
                 </div>
