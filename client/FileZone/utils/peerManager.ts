@@ -27,18 +27,27 @@ export class WebRTCPeerManager{
     }
     private setupDataChannel(peerId:string, channel: RTCDataChannel){
         this.dataChannels.set(peerId, channel);
-        let chunks: Blob[] = [];
+        let receivingFilesChunks = new Map <string,Blob[]>();
         let fileName = "";
         channel.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            if(data.type === "meta"){
-                chunks = [];
+            const fileId = data.fileId;
+            if(data.type === "meta"){ 
+                const chunkExists = receivingFilesChunks.get(fileId);
+                if(!chunkExists){
+                    const chunks: Blob[] = [];
+                    receivingFilesChunks.set(fileId, chunks);
+                }
                 fileName = data.fileName
             }
             else if(data.type === "chunk"){
-                chunks.push(new Blob([new Uint8Array(data.data)]));
+                const chunksArr = receivingFilesChunks.get(fileId);
+                if(chunksArr){
+                    chunksArr.push(new Blob([new Uint8Array(data.data)]));
+                }
             }
             else if(data.type === "done"){
+                const chunks = receivingFilesChunks.get(fileId);
                 const file = new Blob(chunks);
                 this.onFileReceived(file, fileName, peerId);
             }
@@ -144,14 +153,15 @@ export class WebRTCPeerManager{
             return;
         }
         const reader = file.stream().getReader();
-        channel.send(JSON.stringify({type:"meta", fileName:file.name}));
+        const fileId = crypto.randomUUID();
+        channel.send(JSON.stringify({type:"meta", fileName:file.name, fileId}));
         const readChunk = async () => {
             const { done, value } = await reader.read();
             if(done){
-                channel.send(JSON.stringify({type:"done"}));
+                channel.send(JSON.stringify({type:"done", fileId}));
                 return;
             }
-            channel.send(JSON.stringify({type:"chunk", data: Array.from(value)}));
+            channel.send(JSON.stringify({type:"chunk", data: Array.from(value),  fileId}));
             readChunk();
         }
         readChunk();
