@@ -9,7 +9,7 @@ const useSocketStore = create<storeProps>((set) => ({
     socket: null,
     roomId: null,
     connect: (roomId) => {
-        const newSocket = new WebSocket('ws://filezone.fardays.com/ws')
+        const newSocket = new WebSocket('wss://filezone.fardays.com/ws')
         // const newSocket = new WebSocket("ws://localhost:8080/ws");
         set({socket: newSocket, roomId: roomId})
         const object = {
