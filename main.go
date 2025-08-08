@@ -3,9 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -108,6 +110,18 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Error trying to send just joined state to " + username)
 	}
 	var client *Client
+	ticker := time.NewTicker(20 * time.Second)
+	go func() {
+		for range ticker.C {
+			err := conn.WriteControl(websocket.PingMessage, []byte("keepalive"), time.Now().Add(time.Second))
+			if err != nil {
+				log.Println("Stopping sending pings to " + username)
+				ticker.Stop()
+				break
+			}
+		}
+	}()
+
 	for {
 		var msg map[string]any
 		err := conn.ReadJSON(&msg)

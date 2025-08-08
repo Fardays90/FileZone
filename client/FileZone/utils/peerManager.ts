@@ -49,6 +49,7 @@ export class WebRTCPeerManager{
             else if(data.type === "done"){
                 const chunks = receivingFilesChunks.get(fileId);
                 const file = new Blob(chunks);
+                receivingFilesChunks.delete(fileId);
                 this.onFileReceived(file, fileName, peerId);
             }
         }
