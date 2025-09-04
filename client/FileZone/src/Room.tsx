@@ -141,10 +141,17 @@ const Room = () => {
     
     return(
         <div className="flex flex-col bg-black  h-screen w-screen">
-             <motion.div 
-            className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20 blur-3xl z-10"
-            initial={{opacity:0.7}}
-            />
+             <motion.div
+                className="absolute inset-0 blur-[150px] pointer-events-none"
+                style={{
+                    background: `radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.7), transparent 40%),
+                                radial-gradient(circle at 70% 70%, rgba(236, 72, 153, 0.6), transparent 50%),
+                                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.5), transparent 60%)`
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 2 }}
+                />
             <AnimatePresence>
             {
                 alert &&
