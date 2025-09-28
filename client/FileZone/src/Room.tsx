@@ -19,12 +19,12 @@ const Room = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [userModal, setUserModal] = useState<boolean>(false);
     const [alert, setAlert] = useState<string>('');
-    const [justJoined, setJustJoined] = useState(false);
+    const [justJoined, setJustJoined] = useState(true);
     const alertTimeoutRef = useRef<number | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null)
     const [receivedModal, setReceivedModal] = useState(false);
     const [receivedFiles, setReceivedFiles] = useState<receivedFile[]>([]);
-    const {files, addFile, clearFiles} = useFileStore();
+    const {files, addFile, clearFiles, addToSend} = useFileStore();
     
     useEffect(() => {
         if(PeerManager === null  && username && socket && roomId){
@@ -35,12 +35,16 @@ const Room = () => {
         }
     },[roomId, username, socket]);
     useEffect(() => {
+        if(users.length === 1){
+            setJustJoined(false);
+        }
         if(justJoined && PeerManager !== null && users.length > 1 && username && roomId && socket){
             users.forEach((user) => {
                 if(username !== user){
                     PeerManager.connectToPeer(user)
                 }
             })
+            setJustJoined(false);
         }
     },[PeerManager, roomId,username, users, justJoined])
     useEffect(() => {
@@ -56,9 +60,6 @@ const Room = () => {
                     console.log('got usernames: '+data.usernames)
                     setUsers(data.usernames);
                     break;
-                case "justJoined":
-                    setJustJoined(true);
-                    break
                 case "candidate":
                     console.log("Got ICE candidate for "+username+" from "+data.sender);
                     if(!PeerManager){
@@ -88,7 +89,6 @@ const Room = () => {
                     setAlert(data.message)
                     if(data.message.includes("joined")){
                         console.log('just joined to false')
-                        setJustJoined(false);
                     }
                     if(alertTimeoutRef.current){                
                         clearTimeout(alertTimeoutRef.current)
@@ -121,7 +121,7 @@ const Room = () => {
         if(inputRef.current){
             inputRef.current.onchange = () => {
                 const files = inputRef.current?.files;
-                const emptyArr = new Array()
+                const emptyArr: File[] = new Array()
                 if(files){
                     for(let i = 0; i < files.length; i++){
                         emptyArr[i] = files[i];
@@ -129,7 +129,10 @@ const Room = () => {
                 }
                 console.log('new selected files');
                 console.log(emptyArr);
+
                 emptyArr.map((file) => {
+                    const obj = {name: file.name, totalSize: file.size}
+                    addToSend(obj);
                     addFile(file);
                 })
             }

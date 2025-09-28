@@ -1,3 +1,5 @@
+import {useFileStore} from '../hooks/useFileStore';
+
 type RTCSignalMessage = 
 | {type:"offer", offer:RTCSessionDescriptionInit, to: string }
 | {type:"answer", answer:RTCSessionDescriptionInit, to: string } 
@@ -41,7 +43,7 @@ export class WebRTCPeerManager{
                 fileName = data.fileName
             }
             else if(data.type === "chunk"){
-                const chunksArr = receivingFilesChunks.get(fileId);
+                const chunksArr = receivingFilesChunks.get(fileId); 
                 if(chunksArr){
                     chunksArr.push(new Blob([new Uint8Array(data.data)]));
                 }
@@ -155,7 +157,7 @@ export class WebRTCPeerManager{
         }
         const reader = file.stream().getReader();
         const fileId = crypto.randomUUID();
-        channel.send(JSON.stringify({type:"meta", fileName:file.name, fileId}));
+        channel.send(JSON.stringify({type:"meta", fileName:file.name, fileId, totalSize: file.size}));
         const readChunk = async () => {
             const { done, value } = await reader.read();
             if(done){
@@ -163,6 +165,8 @@ export class WebRTCPeerManager{
                 return;
             }
             channel.send(JSON.stringify({type:"chunk", data: Array.from(value),  fileId}));
+            console.log('amount: '+value.length+ " bytes")
+            useFileStore.getState().updateProgressSending({name: file.name, amount: value.length});
             readChunk();
         }
         readChunk();
