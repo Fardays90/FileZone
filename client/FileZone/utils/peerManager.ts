@@ -45,8 +45,14 @@ export class WebRTCPeerManager{
             else if(data.type === "chunk"){
                 const chunksArr = receivingFilesChunks.get(fileId); 
                 if(chunksArr){
+                    const obj = {type: 'ack', fileName: fileName, amount: data.data.length, fileId: fileId}
+                    console.log(data.data.length)
+                    channel.send(JSON.stringify(obj))
                     chunksArr.push(new Blob([new Uint8Array(data.data)]));
                 }
+            }
+            else if(data.type === 'ack'){
+                useFileStore.getState().updateProgressSending({name: data.fileName, amount: data.amount})
             }
             else if(data.type === "done"){
                 const chunks = receivingFilesChunks.get(fileId);
@@ -165,8 +171,6 @@ export class WebRTCPeerManager{
                 return;
             }
             channel.send(JSON.stringify({type:"chunk", data: Array.from(value),  fileId}));
-            console.log('amount: '+value.length+ " bytes")
-            useFileStore.getState().updateProgressSending({name: file.name, amount: value.length});
             readChunk();
         }
         readChunk();
