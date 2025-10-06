@@ -31,7 +31,6 @@ export class WebRTCPeerManager{
         this.dataChannels.set(peerId, channel);
         let receivingFilesChunks = new Map <string,Blob[]>();
         let receivingFileNames = new Map<string, string>();
-        const filesToSend = useFileStore.getState().filesToSend;
         channel.onmessage = (event) => {
             const data = event.data;
             if(data instanceof ArrayBuffer){
