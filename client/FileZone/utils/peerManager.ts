@@ -35,7 +35,15 @@ export class WebRTCPeerManager{
             const data = event.data;
             if(data instanceof ArrayBuffer){
                 const dataArr = new Uint8Array(data);
-                const fileId = dataArr.subarray(0, 16).join(',');
+                const fileIdArr = dataArr.subarray(0, 16);
+                let fileId = ''
+                for(let i = 0; i < 16; i++){
+                    let hex = fileIdArr[i].toString(16);
+                    if(hex.length === 1){
+                        hex = hex.padStart(2, '0');
+                    }
+                    fileId += hex;
+                }
                 const blobArray = receivingFilesChunks.get(fileId);
                 const requiredData = dataArr.subarray(16, dataArr.length);
                 const blob = new Blob([requiredData]);
@@ -44,7 +52,10 @@ export class WebRTCPeerManager{
                 if(blobArray){
                     blobArray.push(blob);
                 }
-            } else {
+                else{
+                    receivingFilesChunks.set(fileId, [blob]);
+                }
+            } else if(typeof data === 'string') {
                 const message = JSON.parse(data);
                 const fileId = message.fileId;
                 if(message.type === "meta"){ 
@@ -52,16 +63,12 @@ export class WebRTCPeerManager{
                     if(!chunkExists){
                         const chunks: Blob[] = [];
                         receivingFilesChunks.set(fileId, chunks);
-                        console.log('filename at line 55: '+message.fileName)
                         receivingFileNames.set(fileId, message.fileName);
                     }
                 }
                 else if(message.type === 'ack'){
-                    console.log('ack received from '+peerId+" for "+this.userId)
-                    const fileName = receivingFileNames.get(message.fileId);
+                    const fileName = useFileStore.getState().filesToSendMap.get(message.fileId);
                     if(fileName){
-                        console.log('file name: '+fileName)
-                        console.log('--------------------------------------------------------------------------- '+fileName)
                         useFileStore.getState().updateProgressSending({name: fileName, amount: message.amount})
                     }
                 }
@@ -174,35 +181,32 @@ export class WebRTCPeerManager{
         for(let i = 0; i < 16; i++){
             byteArr[i] = parseInt(req.substring(i * 2, (i * 2) + 2), 16);
         }
-        return byteArr;
+        return { originalHex:req, byteArray:byteArr };
     }
-    public sendFile(peerId: string, file: File){
+    public async sendFile(peerId: string, file: File){
         const channel = this.dataChannels.get(peerId);
         if(!channel || channel.readyState !== "open"){
             return;
         }
-        const reader = file.stream().getReader();
         const fileId = this.uuidToBytes(crypto.randomUUID());
-        channel.send(JSON.stringify({type:"meta", fileName:file.name, fileId: fileId.join(','), totalSize: file.size}));
-        const readChunk = async () => {
-            const { done, value } = await reader.read();
-            if(done){
-                channel.send(JSON.stringify({type:"done", fileId: fileId.join(','), fileName: file.name}));
-                return;
+        channel.send(JSON.stringify({type:"meta", fileName:file.name, fileId: fileId.originalHex, totalSize: file.size}));
+        useFileStore.getState().updateSendMap({id: fileId.originalHex, name: file.name});
+        let offset = 0;
+        const chunk_size = 16 * 1024
+        while(offset < file.size){ 
+            const currData = file.slice(offset, offset + chunk_size);
+            const payload = await currData.arrayBuffer();
+            const packet = new Uint8Array(fileId.byteArray.length + payload.byteLength)
+            const payarr = new Uint8Array(payload);
+            packet.set(fileId.byteArray, 0);
+            packet.set(payarr, fileId.byteArray.length)
+            while(channel.bufferedAmount > 128 * 1024){
+                await new Promise(resolve => setTimeout(resolve, 10))
             }
-            const arr = new Uint8Array(fileId.length + value.length); // basically adding the uuid with the binary
-            for(let i = 0; i < arr.length; i++){
-                if(i >= fileId.length){
-                    arr[i] = value[i - 16];
-                    continue
-                }
-                arr[i] = fileId[i];
-            }
-            channel.send(arr.buffer);
-            // channel.send(JSON.stringify({type:"chunk", data: Array.from(value),  fileId}));
-            readChunk();
+            channel.send(packet.buffer)
+            offset += chunk_size
         }
-        readChunk();
+        channel.send(JSON.stringify({type:"done", fileId: fileId.originalHex, fileName: file.name}))
     }
     public broadcastFile(file:File){
         for(const peerId of this.dataChannels.keys()){

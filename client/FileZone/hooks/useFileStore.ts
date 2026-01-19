@@ -3,6 +3,10 @@ type filesTransit = {
     name: string,
     totalSize: number
 }
+type fileToID = {
+    name: string,
+    id: string,
+}
 type progressData = {
     name: string,
     amount: number
@@ -11,6 +15,7 @@ type fileStore = {
     files: File[],
     filesToReceive: filesTransit[],
     filesToSend: filesTransit[],
+    filesToSendMap: Map<string, string>,
     progress: Map<string, number>,
     progressForSending: Map<string, number>
     addFile: (file: File) => void,
@@ -21,7 +26,8 @@ type fileStore = {
     addToSend: (fileTransit: filesTransit) => void,
     updateProgressSending: (progData: progressData) => void,
     updateProgress: (progData: progressData) => void,
-    clearReceive: (filesTransit: filesTransit) => void
+    updateSendMap: (meta: fileToID) => void,
+    clearReceive: (filesTransit: filesTransit) => void,
 }
 export const useFileStore = create<fileStore>((set, get) => ({
     files: [],
@@ -29,6 +35,7 @@ export const useFileStore = create<fileStore>((set, get) => ({
     filesToSend: [],
     progressForSending: new Map<string, number>(),
     progress: new Map<string, number>(),
+    filesToSendMap: new Map<string, string>(),
     
     updateProgressSending: (progD: progressData) => {
         const files = get().filesToSend;
@@ -43,10 +50,6 @@ export const useFileStore = create<fileStore>((set, get) => ({
             if(progress >= 100){
                 get().clearSend(file);
                 set({progressForSending: new Map(progressMap.set(file.name, 100))})
-                // const map = get().progressForSending;
-                // map.delete(file.name);
-                // set({progressForSending: new Map(map)});
-
             } else {
                 const newProg = new Map(progressMap).set(file.name,progress);
                 set({progressForSending: newProg});
@@ -81,6 +84,9 @@ export const useFileStore = create<fileStore>((set, get) => ({
         const currentFilesTransit = get().filesToReceive;
         const newArr = currentFilesTransit.filter((elem) => elem.name !== fileTransit.name);
         set({filesToReceive: newArr});
+    },
+    updateSendMap: (meta : fileToID) => {
+        set({filesToSendMap: new Map(get().filesToSendMap).set(meta.id, meta.name)});
     },
     addToSend: (fileTransit: filesTransit) => {
         const currentProg = get().progressForSending;
