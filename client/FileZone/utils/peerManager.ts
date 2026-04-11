@@ -7,7 +7,32 @@ type RTCSignalMessage =
 
 type SignalMessage = {message: RTCSignalMessage, roomId: string, sender: string, type: string}
 
-type onFileReceived = (file:Blob, fileName:string, from:string) => void
+type FileId = {
+    originalHex: string,
+    byteArray: Uint8Array
+}
+
+// type Intent = {
+//     type: string,
+//     intentId: string,
+//     fileSize: number,
+//     peerId: string,
+// }
+
+
+type onFileReceived = (fileName:string, from:string) => void
+
+const opfsWorker = new Worker(new URL('./opfsWriter.ts', import.meta.url), {type: 'module'})
+
+opfsWorker.onmessage = ({ data }) => {
+    if(data.type === 'done'){
+        const anchor = document.createElement('a');
+        anchor.href = `/download/${data.fileName}`
+        document.body.appendChild(anchor)
+        anchor.click()
+        document.body.removeChild(anchor)
+    }
+}
 
 export class WebRTCPeerManager{
     private peers: Map<string, RTCPeerConnection> = new Map();
@@ -29,8 +54,8 @@ export class WebRTCPeerManager{
     }
     private setupDataChannel(peerId:string, channel: RTCDataChannel){
         this.dataChannels.set(peerId, channel);
-        let receivingFilesChunks = new Map <string,Blob[]>();
         let receivingFileNames = new Map<string, string>();
+        let receivingFileOff = new Map<string, number>();
         channel.onmessage = (event) => {
             const data = event.data;
             if(data instanceof ArrayBuffer){
@@ -44,26 +69,33 @@ export class WebRTCPeerManager{
                     }
                     fileId += hex;
                 }
-                const blobArray = receivingFilesChunks.get(fileId);
-                const requiredData = dataArr.subarray(16, dataArr.length);
-                const blob = new Blob([requiredData]);
+                const requiredData = dataArr.slice(16, dataArr.length);
+                const reqDataLen = requiredData.length
+                const fileName = receivingFileNames.get(fileId);
+                if(!fileName){
+                    return
+                }
+                const prevOff = receivingFileOff.get(fileName) ?? 0;
+                const newOffset = prevOff + requiredData.length;
+                receivingFileOff.set(fileName, newOffset)
+                const meta = {
+                    fileName,
+                    state: 'chunk',
+                    offset: prevOff
+                }
                 const obj = {type: 'ack', amount: requiredData.length, fileId: fileId}
-                channel.send(JSON.stringify(obj));
-                if(blobArray){
-                    blobArray.push(blob);
-                }
-                else{
-                    receivingFilesChunks.set(fileId, [blob]);
-                }
+                const ackJson = JSON.stringify(obj)
+                opfsWorker.postMessage({meta, stream: requiredData.buffer}, [requiredData.buffer])
+                channel.send(ackJson);
+                useFileStore.getState().updateProgress({name: fileName ? fileName : "", amount: reqDataLen})
             } else if(typeof data === 'string') {
                 const message = JSON.parse(data);
                 const fileId = message.fileId;
                 if(message.type === "meta"){ 
-                    const chunkExists = receivingFilesChunks.get(fileId);
-                    if(!chunkExists){
-                        const chunks: Blob[] = [];
-                        receivingFilesChunks.set(fileId, chunks);
+                    const fileExists = receivingFileNames.get(fileId);
+                    if(!fileExists){
                         receivingFileNames.set(fileId, message.fileName);
+                        receivingFileOff.set(message.fileName, 0)
                     }
                 }
                 else if(message.type === 'ack'){
@@ -73,10 +105,16 @@ export class WebRTCPeerManager{
                     }
                 }
                 else if(message.type === "done"){
-                    const chunks = receivingFilesChunks.get(message.fileId);
-                    const file = new Blob(chunks);
-                    receivingFilesChunks.delete(fileId);
-                    this.onFileReceived(file, message.fileName, peerId);
+                    // const chunks = receivingFilesChunks.get(message.fileId);
+                    // const file = new Blob(chunks);
+                    // receivingFilesChunks.delete(fileId);
+                    const meta = {state: 'done', fileName: message.fileName, offset: 0};
+                    const stream = new ArrayBuffer();
+                    const msg = {meta, stream}
+                    opfsWorker.postMessage(msg)
+                    receivingFileNames.delete(fileId)
+                    receivingFileOff.delete(message.fileName)
+                    this.onFileReceived(message.fileName, peerId);
                 }
             }
         }
@@ -175,42 +213,32 @@ export class WebRTCPeerManager{
             }
         }
     }
-    private uuidToBytes(uuid: string){
-        const req = uuid.replace(/-/g, '');
-        const byteArr = new Uint8Array(16); // as uuid here is 32 hex characters after removing hyphens hence 16 bytes
-        for(let i = 0; i < 16; i++){
-            byteArr[i] = parseInt(req.substring(i * 2, (i * 2) + 2), 16);
-        }
-        return { originalHex:req, byteArray:byteArr };
-    }
-    public async sendFile(peerId: string, file: File){
+    public async sendFile(peerId: string, {file, id}:{file:File, id:FileId}){
         const channel = this.dataChannels.get(peerId);
         if(!channel || channel.readyState !== "open"){
             return;
         }
-        const fileId = this.uuidToBytes(crypto.randomUUID());
-        channel.send(JSON.stringify({type:"meta", fileName:file.name, fileId: fileId.originalHex, totalSize: file.size}));
-        useFileStore.getState().updateSendMap({id: fileId.originalHex, name: file.name});
+        channel.send(JSON.stringify({type:"meta", fileName:file.name, fileId: id.originalHex, totalSize: file.size}));
         let offset = 0;
         const chunk_size = 16 * 1024
         while(offset < file.size){ 
             const currData = file.slice(offset, offset + chunk_size);
             const payload = await currData.arrayBuffer();
-            const packet = new Uint8Array(fileId.byteArray.length + payload.byteLength)
+            const packet = new Uint8Array(id.byteArray.length + payload.byteLength)
             const payarr = new Uint8Array(payload);
-            packet.set(fileId.byteArray, 0);
-            packet.set(payarr, fileId.byteArray.length)
+            packet.set(id.byteArray, 0);
+            packet.set(payarr, id.byteArray.length)
             while(channel.bufferedAmount > 128 * 1024){
                 await new Promise(resolve => setTimeout(resolve, 10))
             }
             channel.send(packet.buffer)
             offset += chunk_size
         }
-        channel.send(JSON.stringify({type:"done", fileId: fileId.originalHex, fileName: file.name}))
+        channel.send(JSON.stringify({type:"done", fileId: id.originalHex, fileName: file.name}))
     }
-    public broadcastFile(file:File){
+    public broadcastFile({file, id}:{file:File, id: FileId}){
         for(const peerId of this.dataChannels.keys()){
-            this.sendFile(peerId, file);
+            this.sendFile(peerId, {file, id});
         }
     }
     public getPeers(){

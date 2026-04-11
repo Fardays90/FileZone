@@ -9,7 +9,7 @@ type StoreProps = {
         onFileReceived: onFileReceived
     ) => void
 }
-type onFileReceived = (file:Blob, fileName:string, from:string) => void
+type onFileReceived = (fileName:string, from:string) => void
 
 const usePeerStore = create<StoreProps>((set) => ({
     PeerManager: null,

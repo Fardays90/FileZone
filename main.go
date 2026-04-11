@@ -34,6 +34,25 @@ var upgrader = &websocket.Upgrader{
 	},
 }
 
+type FileMeta struct {
+	FileId    string `json:"fileId"`
+	TotalSize int64  `json:"totalSize"`
+	FileName  string `json:"fileName"`
+	FileType  string `json:"fileType"`
+}
+
+type msgPayload struct {
+	From string      `json:"from"`
+	Text string      `json:"text"`
+	File []*FileMeta `json:"file"`
+}
+
+type textMessage struct {
+	Type   string     `json:"type"`
+	RoomId string     `json:"roomId"`
+	Msg    msgPayload `json:"msg"`
+}
+
 type usernameJson struct {
 	Type     string `json:"type"`
 	Username string `json:"username"`
@@ -88,6 +107,20 @@ func enableCors(w *http.ResponseWriter, r *http.Request) {
 	}
 	(*w).Header().Set("Access-Control-Allow-Origin", origin)
 
+}
+
+func handleTextMessage(raw map[string]any) *textMessage {
+	jsonM, err := json.Marshal(raw)
+	if err != nil {
+		fmt.Println("Error marshaling text")
+		return nil
+	}
+	var msg textMessage
+	err = json.Unmarshal(jsonM, &msg)
+	if err != nil {
+		fmt.Println("Something went wrong unmarshling")
+	}
+	return &msg
 }
 
 func handleConnection(w http.ResponseWriter, r *http.Request) {
@@ -209,6 +242,34 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 			err = recipientConn.WriteJSON(msg)
 			if err != nil {
 				fmt.Println("Error trying to send signal message to " + recipient)
+			}
+		case "msgText":
+			textMessage := handleTextMessage(msg)
+			if textMessage == nil {
+				return
+			}
+			roomId := textMessage.RoomId
+			from := textMessage.Msg.From
+			mutex.Lock()
+			reqRoom, found := rooms[roomId]
+			if !found {
+				mutex.Unlock()
+				fmt.Println("Room not found :(")
+				return
+			}
+			senderConn, found := usernameToConn[from]
+			if !found {
+				mutex.Unlock()
+				fmt.Println("no user found")
+				return
+			}
+			var roomCpy = make([]*Client, len(reqRoom))
+			copy(roomCpy, reqRoom)
+			mutex.Unlock()
+			for _, c := range roomCpy {
+				if c.conn != senderConn {
+					c.conn.WriteJSON(textMessage)
+				}
 			}
 		}
 	}

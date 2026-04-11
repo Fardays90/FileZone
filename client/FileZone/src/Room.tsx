@@ -1,19 +1,36 @@
 import { useSocketStore } from "../hooks/useSocketStore"
 import { usePeerStore } from '../hooks/usePeerStore';
 import {AnimatePresence, easeInOut, motion} from 'framer-motion'
-import UploadedFile from "./UploadedFile";
 import { AlertCircle,User, XIcon } from "lucide-react";
 import { useFileStore } from '../hooks/useFileStore';
 import { useEffect, useRef, useState } from "react";
+import {useTextStore} from '../hooks/useTextStore'
 import clsx from "clsx";
-import ReceivedFile from "./ReceivedFIle";
+import IncomingBubble from "./IncomingBubble";
+import OutgoingBubble from "./OutgoingBubble";
+import TextInput from "./TextInput";
+import { useNavigate } from "react-router-dom";
+
 type receivedFile = {
     file: Blob,
     fileName: string,
     from: string
 }
+type fileMeta = {
+    fileId: string,
+    totalSize: number,
+    fileName: string,
+    fileType: string,
+}
+
+type incomingMsg = {
+    from: string,
+    text: string,
+    file: fileMeta[]
+}
+
 const Room = () => {
-    const {roomId, socket} = useSocketStore();
+    const {roomId, socket, state} = useSocketStore();
     const { PeerManager, setNewPeerManager } = usePeerStore();
     const [username, setUsername] = useState('')
     const [users, setUsers] = useState<any[]>([]);
@@ -23,17 +40,28 @@ const Room = () => {
     const alertTimeoutRef = useRef<number | null>(null);
     const inputRef = useRef<HTMLInputElement | null>(null)
     const [receivedModal, setReceivedModal] = useState(false);
-    const [receivedFiles, setReceivedFiles] = useState<receivedFile[]>([]);
+    const router = useNavigate();
+    const [receivedFiles] = useState<receivedFile[]>([]);
+    const bottomRef = useRef<HTMLDivElement>(null);
+    const scrollContainer = useRef<HTMLDivElement>(null)
     const {files, addFile, clearFiles, addToSend} = useFileStore();
+    const{ setReceivedTexts, allTexts } = useTextStore();
     
     useEffect(() => {
         if(PeerManager === null  && username && socket && roomId){
-            setNewPeerManager(socket, username, roomId, (file: Blob, fileName: string, from: string) => {
-                const receivedObj = {file: file, fileName: fileName, from: from}
-                setReceivedFiles((state) => [...state, receivedObj]);
+            setNewPeerManager(socket, username, roomId, (fileName: string, from: string) => {
+                // const receivedObj = {fileName: fileName, from: from}
+                // addToDoneRec(receivedObj)
+                console.log(`${fileName} has been successfully received from ${from} in OPFS`)
             });
         }
     },[roomId, username, socket]);
+    useEffect(() => {
+        if(state === false){
+            router('/')
+        }
+    },[state])
+
     useEffect(() => {
         if(users.length === 1){
             setJustJoined(false);
@@ -47,6 +75,14 @@ const Room = () => {
             setJustJoined(false);
         }
     },[PeerManager, roomId,username, users, justJoined])
+    useEffect(() => {
+        if(scrollContainer.current){
+            scrollContainer.current.scrollTo({
+                top: scrollContainer.current.scrollHeight,
+                behavior: "auto"
+            })
+        }
+    },[allTexts])
     useEffect(() => {
         if(!socket)return;
         socket.onmessage = (event) => {
@@ -85,6 +121,15 @@ const Room = () => {
                         PeerManager?.handleSignal(data)
                     }
                     break;
+                case "msgText":
+                    const msgData: incomingMsg = data.msg
+                    let files = msgData.file
+                    const build = {from: msgData.from, text: msgData.text, file: files}
+                    setReceivedTexts(build)
+                    break;
+                case "intent":
+                    
+                    break;
                 case "alert":
                     setAlert(data.message)
                     if(data.message.includes("joined")){
@@ -107,15 +152,15 @@ const Room = () => {
         };
         }, [PeerManager])
 
-    const sendFiles = () => {
-        console.log('send clicked')
-        if(files.length > 0){
-            console.log('trying to send')
-            files.map((file) => {
-                PeerManager?.broadcastFile(file);
-            })
-        }
-    }
+    // const sendFiles = () => {
+    //     console.log('send clicked')
+    //     if(files.length > 0){
+    //         console.log('trying to send')
+    //         files.map((file) => {
+    //             PeerManager?.broadcastFile(file);
+    //         })
+    //     }
+    // }
 
     useEffect(() => {
         if(inputRef.current){
@@ -145,14 +190,18 @@ const Room = () => {
     return(
         <div className="flex flex-col bg-black  h-screen w-screen">
              <motion.div
-                className="absolute inset-0 blur-[150px] pointer-events-none"
-                style={{
-                    background: `radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.7), transparent 40%),
-                                radial-gradient(circle at 70% 70%, rgba(236, 72, 153, 0.6), transparent 50%),
-                                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.5), transparent 60%)`
-                }}
+                className="absolute inset-0  bg-black pointer-events-none"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
+                style={{backgroundImage: `
+                    linear-gradient(45deg, transparent 49%, #065f46 49%, #e5e7eb 51%, transparent 51%),
+                    linear-gradient(-45deg, transparent 49%, #065f46 49%, #065f46 51%, transparent 51%)
+                `,
+                backgroundSize: "40px 40px",
+                WebkitMaskImage:
+                  "radial-gradient(ellipse 100% 80% at 50% 100%, #000 50%, transparent 90%)",
+                maskImage:
+                  "radial-gradient(ellipse 100% 80% at 50% 100%, #000 50%, transparent 90%)",}}
                 transition={{ duration: 2 }}
                 />
             <AnimatePresence>
@@ -175,10 +224,10 @@ const Room = () => {
             {
                 userModal &&
                 <motion.div className="flex flex-col shadow-xl shadow-black absolute w-3/4 h-screen md:w-1/3 p-5 bg-black/30 space-y-5 py-10  backdrop-blur-md "
-                initial={{x:-650}}
+                initial={{x:-400}}
                 animate={{x:0}}
                 exit={{x:-650}}
-                transition={{duration:0.6}}
+                transition={{duration:0.3}}
                 style={{zIndex:999999}}
                 >
                     <p className="text-white text-sm md:text-xl font-light font-mono">Your username: {username}</p> 
@@ -209,18 +258,18 @@ const Room = () => {
                         </button>
                         <div className="flex-1 flex overflow-y-auto flex-col w-full items-center self-center p-3 space-y-5">
                             {
-                                (receivedFiles.length > 0) ?
-                                receivedFiles.map((file, index) => (
-                                    <ReceivedFile key={index} name={file.fileName} type={file.file.type} file={file.file}/>
-                                ))
-                                :
-                                <p>No files gotten yet</p>
+                                // (receivedFiles.length > 0) ?
+                                // receivedFiles.map((file, index) => (
+                                //     <ReceivedFile key={index} name={file.fileName} type={file.file.type} file={file.file}/>
+                                // ))
+                                // :
+                                // <p>No files gotten yet</p>
                             }
                         </div>
                     </motion.div>
                 }
             </AnimatePresence>
-            <motion.div className="h-20  md:h-24  bg-black/65 shadow-md shadow-black mb-2 flex flex-row justify-between px-5 items-center w-screen relative z-50 top-0"
+            <motion.div className="h-20  md:h-24  bg-black/65 0 shadow-md shadow-black mb-2 flex flex-row justify-between px-5 items-center w-screen relative z-50 top-0"
             initial={{y:-200}}
             animate={{y:0}}
             transition={{duration:0.75}}
@@ -244,19 +293,10 @@ const Room = () => {
                     </button>
                 </div>
             </motion.div>
-            <div className="flex-col flex-1 overflow-y-auto flex w-screen z-20 items-center mb-24 md:mb-36 space-y-2 ">
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-emerald-700/40 to-transparent" />
+            <div ref={scrollContainer} className="flex-col flex-1 overflow-y-auto flex w-screen z-20 mb-30 md:mb-40 space-y-2 ">
                 {
-                    files &&
-                    files.map((file, index) => {
-                        console.log('file type: '+file.type)
-                        return(
-                            <UploadedFile key={index} file={file} name={file.name} type={file.type} />
-                        )
-                    })
-                    
-                }
-                {
-                    files.length === 0 &&
+                    (files.length === 0) && (allTexts.length === 0) &&
                     <motion.p className="text-white font-bold text-xl md:text-3xl mx-auto my-auto "
                     initial={{opacity:0}}
                     animate={{opacity:1}}
@@ -265,12 +305,23 @@ const Room = () => {
                     No files to show
                     </motion.p>
                 }
-            </div>
-            <div className={clsx(files.length > 0 ? "w-full  flex-row  absolute z-50 justify-between px-2   flex bottom-0 space-x-2" : 
-                "w-full flex-row  absolute z-50 justify-center flex bottom-0"
-             ) }>
                 {
-                    files.length > 0 ?
+                    <>{
+                    allTexts.length > 0 &&
+                    allTexts.map((bubble, index) => (
+                        bubble.type === 'sent' ?     
+                        <OutgoingBubble key={index} from={bubble.body.from} text={bubble.body.text} file={bubble.body.file}/>
+                        :
+                        <IncomingBubble key={index} from={bubble.body.from} text={bubble.body.text} file={bubble.body.file}/>
+                    ))}
+                    <div ref={bottomRef}/>
+                    </>
+                }
+            </div>
+            <div className={clsx("w-full flex-row absolute z-50  justify-center flex bottom-0"
+             ) }>
+                {/* {
+                    files.length < 0 &&
                     <>
                         <label htmlFor="inputFile"  className="rounded-xl  w-3/4 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
                             <p className="text-white text-center text-sm md:text-xl font-bold">Add File</p>
@@ -283,7 +334,15 @@ const Room = () => {
                     <label htmlFor="inputFile"  className="rounded-xl  w-1/2 backdrop-blur-lg bg-black/35  hover:bg-black/55 md:mb-20 mb-10  p-4" style={{cursor:'pointer'}}>
                         <p className="text-white text-center text-sm md:text-xl font-bold">Add File</p>
                     </label>
-                }
+                    <div className="">
+                        {
+                            files.map((file, index) => (
+                            <UploadedFile key={index} file={file} name={file.name} type={file.type} />
+                        ))
+                        }
+                    </div>
+                } */}
+                <TextInput username={username}/>
                 <input id="inputFile" ref={inputRef} multiple type="file" className="hidden"/>
             </div>
         </div>
