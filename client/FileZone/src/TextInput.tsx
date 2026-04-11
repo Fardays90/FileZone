@@ -88,10 +88,10 @@ const TextInput = ({username} : {username: string}) => {
                 }
              </div>
             }
-            <div className="flex flex-row justify-between  w-full backdrop-blur-lg bg-black/35  mb-10  p-4">
+            <div className="flex flex-row justify-between w-full backdrop-blur-lg bg-black/35  mb-10  p-4">
                 <input id="inputto" onKeyDown={(e) => {if(e.key ==='Enter'){sendMessage()}}} onChange={(e) => {setText(e.target.value)}} value={text} placeholder="Aa" className="text-white hover:bg-black/55 focus:ring-lime-700 transition-all  focus:outline-none w-full p-3 bg-gray-900/15 border border-gray-700  focus:ring-2"/>
                 <div className="flex flex-row space-x-2 ml-5">
-                    <button onClick={() => sendMessage()} className="md:p-3 border border-gray-700 md:bg-black/15 md:hover:bg-black/85 cursor-pointer">
+                    <button onClick={() => sendMessage()} className="p-3 border border-gray-700 md:bg-black/15 md:hover:bg-black/85 cursor-pointer hover:scale-110">
                         <SendHorizontal color="white" />
                     </button>
                     <label htmlFor="inputFile" className="p-3 border border-gray-700 cursor-pointer hover:scale-110">

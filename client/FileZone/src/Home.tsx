@@ -81,13 +81,13 @@ const Home = () => {
           </button>
         </div>
         <motion.div
-          className="absolute bottom-8 flex flex-col items-center gap-1 text-gray-200 text-xs cursor-pointer z-10"
+          className="absolute bottom-20 md:bottom-8 flex flex-col items-center gap-1 text-gray-200 text-xs cursor-pointer z-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{duration: 0.8 }}
           onClick={() => sectionsRef.current?.scrollIntoView({ behavior: 'smooth' })}
         >
-          <span className="tracking-widest uppercase text-[10px]">Learn more</span>
+          <span className="tracking-widest uppercase md:text-sm text-[10px]">Learn more</span>
           <motion.div
             animate={{ y: [0, 5, 0] }}
             transition={{ repeat: Infinity, duration: 1, ease: "easeInOut" }}

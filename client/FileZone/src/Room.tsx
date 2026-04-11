@@ -284,7 +284,7 @@ const Room = () => {
                     }
                     {
                         files.length > 0 &&
-                        <button onClick={clearFiles} style={{cursor:'pointer'}} className="rounded-xl shadow-md shadow-black bg-gradient-to-l  from-blue-500/15 to-rose-500/15 backdrop-blur-3xl hover:scale-110 transition-all">
+                        <button onClick={clearFiles} style={{cursor:'pointer'}} className="shadow-md bg-black/15 border border-gray-700  hover:scale-110 transition-all">
                             <p className="p-4 text-white">Clear</p>
                         </button>
                     }
