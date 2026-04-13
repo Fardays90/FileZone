@@ -8,7 +8,7 @@ self.addEventListener('fetch', (e) => {
 const handleDownload = async (url) => {
     const pathName = url.pathname;
     const idx = pathName.lastIndexOf('/')
-    const fileName = pathName.substring(idx + 1)
+    const fileName = decodeURIComponent(pathName.substring(idx + 1))
     const opfsRoot = await navigator.storage.getDirectory();
     const fd = await opfsRoot.getFileHandle(fileName, {create: false})
     const file = await fd.getFile();
