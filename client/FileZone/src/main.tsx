@@ -3,7 +3,7 @@ import './index.css'
 import App from './App.tsx'
 
 if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./serviceWorker.js');
+    navigator.serviceWorker.register('/serviceWorker.js');
 }
 createRoot(document.getElementById('root')!).render(
     <App />
