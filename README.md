@@ -66,6 +66,11 @@ sequenceDiagram
     SignalingServer->>UserB: Forwards "offer" message to 'beta'
     Note over UserB: User B's browser receives the offer
 ```
+## Design overview
+- Signaling server: Handles websocket coordination for WebRTC setup and exchanging signaling data along with text messages.
+- WebRTC data channels: Handles the file transfer. Files are broken into chunks and sent with identifiers (id, offset) to ensure correct reassembly from ArrayBuffers.
+- OPFS: Stores incoming data chunks and reassembles them. Enabling sharing of large files without memory issues. A web worker is used to write to OPFS to prevent freezing the main thread.
+- Service worker: Acts as a virtual download layer by intercepting HTTP requests and streaming files directly from OPFS to the browser’s download system.
 
 ## Tech Stack
 
